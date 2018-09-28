@@ -25,7 +25,10 @@ func Run(dir string) []TranslationFile {
 	var result []TranslationFile
 
 	for _, path := range Walk(dir) {
-		result = append(result, Format(path))
+		t := Format(path)
+		if len(t.Content) > 0 {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -65,6 +68,10 @@ func extractSource(path string) []byte {
 func extractVueSource(path string) []byte {
 	source := extractYmlSource(path)
 	matched := regexp.MustCompile(VUE_BLOCK_RE).FindAllSubmatch(source, -1)
+
+	if len(matched) == 0 {
+		return []byte{}
+	}
 	return matched[len(matched)-1][2]
 }
 
