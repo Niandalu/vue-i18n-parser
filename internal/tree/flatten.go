@@ -2,6 +2,7 @@ package tree
 
 import (
 	"log"
+	"reflect"
 )
 
 func Flatten(tree map[string]interface{}) map[string]string {
@@ -39,6 +40,12 @@ func Flatten(tree map[string]interface{}) map[string]string {
 			}
 		case map[interface{}]interface{}:
 			for nestedK, nestedV := range t {
+				keyType := reflect.TypeOf(nestedK).Kind()
+				if keyType != reflect.String {
+					log.Printf("%v", node)
+					log.Fatalf("ERROR: Only string is accepted, but %v is %v.", nestedK, keyType)
+				}
+
 				todo.Push(StackItem{
 					node.k + "." + nestedK.(string),
 					nestedV,
