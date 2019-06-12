@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/csv"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/niandalu/vue-i18n-parser/internal/collector"
 	"github.com/niandalu/vue-i18n-parser/internal/feeder"
 	"github.com/niandalu/vue-i18n-parser/internal/reader"
 	"github.com/urfave/cli"
-	"log"
-	"os"
-	"strings"
 )
 
 func main() {
@@ -49,6 +50,12 @@ func prepareApp(projectRoot string) *cli.App {
 				},
 
 				cli.StringFlag{
+					Name:  "ignore",
+					Value: "(node_modules|tourist.yml)",
+					Usage: "Files to be ignored, only accept regexp right now",
+				},
+
+				cli.StringFlag{
 					Name:  "languages, l",
 					Value: "cn,en",
 					Usage: "Languages your app supported, separated by comma. And the first value is considered to be mandatory language",
@@ -59,7 +66,7 @@ func prepareApp(projectRoot string) *cli.App {
 				var files []reader.TranslationFile
 
 				for _, relativeDir := range strings.Split(c.Args().First(), ",") {
-					files = append(files, reader.Run(relativeDir)...)
+					files = append(files, reader.Run(relativeDir, c.String("ignore"))...)
 				}
 				languages := strings.Split(c.String("languages"), ",")
 				sheet := collector.Run(files, languages, diffOnly)

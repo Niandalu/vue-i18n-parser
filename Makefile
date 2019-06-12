@@ -10,4 +10,4 @@ example-feed:
 
 build:
 	dep ensure
-	go build cmd/vip.go
+	GOOS=linux GOARCH=amd64 go build cmd/vip.go

@@ -2,17 +2,18 @@ package feeder
 
 import (
 	"encoding/csv"
-	"github.com/imdario/mergo"
-	"github.com/niandalu/vue-i18n-parser/internal/digest"
-	"github.com/niandalu/vue-i18n-parser/internal/reader"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/imdario/mergo"
+	"github.com/niandalu/vue-i18n-parser/internal/digest"
+	"github.com/niandalu/vue-i18n-parser/internal/reader"
 )
 
-const RESERVED = 3
+const RESERVED = 4
 
 func Run(projectRoot string, csvFile string) {
 	for path, tf := range groupByFile(csvFile) {
@@ -38,9 +39,9 @@ func groupByFile(source string) map[string]reader.TranslationFile {
 	candiates := map[string]reader.TranslationFile{}
 
 	for _, r := range records {
-		prevDigest := r[0]
-		path := r[1]
-		key := r[2]
+		prevDigest := r[1]
+		path := r[2]
+		key := r[3]
 
 		nextContent := reader.Translation{}
 		if _, ok := candiates[path]; ok {

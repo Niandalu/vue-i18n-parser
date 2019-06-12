@@ -1,12 +1,13 @@
 package reader
 
 import (
-	"github.com/niandalu/vue-i18n-parser/internal/digest"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"path/filepath"
 	"regexp"
+
+	"github.com/niandalu/vue-i18n-parser/internal/digest"
+	"gopkg.in/yaml.v2"
 )
 
 type KV map[string]interface{}
@@ -21,10 +22,16 @@ type TranslationFile struct {
 
 const VUE_BLOCK_RE = `<i18n(.*?)>((.|\s)*?)</i18n>`
 
-func Run(dir string) []TranslationFile {
+func Run(dir string, ignore string) []TranslationFile {
 	var result []TranslationFile
 
 	for _, path := range Walk(dir) {
+		matched, _ := regexp.MatchString(ignore, path)
+
+		if matched {
+			continue
+		}
+
 		t := Format(path)
 		if len(t.Content) > 0 {
 			result = append(result, t)
