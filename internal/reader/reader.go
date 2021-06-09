@@ -7,10 +7,12 @@ import (
 	"regexp"
 
 	"github.com/niandalu/vue-i18n-parser/internal/digest"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type KV map[string]interface{}
+
+// map[Lang]KV
 type Translation map[string]KV
 
 type TranslationFile struct {

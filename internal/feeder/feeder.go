@@ -2,6 +2,7 @@ package feeder
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,12 +12,18 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/niandalu/vue-i18n-parser/internal/digest"
 	"github.com/niandalu/vue-i18n-parser/internal/reader"
+	"github.com/niandalu/vue-i18n-parser/internal/utils"
 )
 
 const RESERVED = 4
 
-func Run(projectRoot string, csvFile string) {
-	for path, tf := range groupByFile(csvFile) {
+type Options struct {
+	PatchMode bool
+	Indent    int
+}
+
+func Run(projectRoot string, file string, options Options) {
+	for path, tf := range groupByFile(file, options) {
 		realpath := filepath.Join(projectRoot, path)
 
 		code, err := ioutil.ReadFile(realpath)
@@ -26,16 +33,16 @@ func Run(projectRoot string, csvFile string) {
 		}
 
 		currentDigest := digest.Find(code)
-		if currentDigest != "" && currentDigest != tf.PrevDigest {
+		if !options.PatchMode && currentDigest != "" && currentDigest != tf.PrevDigest {
 			log.Fatalf("%s translation has been mutated since last change", realpath)
 		}
 
-		Write(realpath, code, tf)
+		Write(realpath, code, tf, options)
 	}
 }
 
-func groupByFile(source string) map[string]reader.TranslationFile {
-	langs, records := read(source)
+func groupByFile(sourceFile string, options Options) map[string]reader.TranslationFile {
+	langs, records := read(sourceFile)
 	candiates := map[string]reader.TranslationFile{}
 
 	for _, r := range records {
@@ -44,8 +51,11 @@ func groupByFile(source string) map[string]reader.TranslationFile {
 		key := r[3]
 
 		nextContent := reader.Translation{}
-		if _, ok := candiates[path]; ok {
+		_, hasSomething := candiates[path]
+		if hasSomething {
 			nextContent = candiates[path].Content
+		} else if options.PatchMode {
+			nextContent = reader.Format(path).Content
 		}
 
 		tmp := reader.Translation{}
@@ -53,7 +63,7 @@ func groupByFile(source string) map[string]reader.TranslationFile {
 			tmp[lang] = convertToNested(key, r[i+RESERVED])
 		}
 
-		if err := mergo.Merge(&nextContent, tmp); err != nil {
+		if err := mergo.Merge(&nextContent, tmp, mergo.WithOverride); err != nil {
 			log.Fatalf("Failed to merge %v", err)
 		}
 
@@ -68,26 +78,102 @@ func groupByFile(source string) map[string]reader.TranslationFile {
 	return candiates
 }
 
-func read(source string) ([]string, [][]string) {
-	file, err := os.Open(source)
+func read(sourceFile string) ([]string, [][]string) {
+	file, err := os.Open(sourceFile)
 
 	if err != nil {
-		log.Fatalf("Cannot open file %s, %v", source, err)
+		log.Fatalf("Cannot open file %s, %v", sourceFile, err)
+	}
+	defer file.Close()
+
+	if filepath.Ext(sourceFile) == ".csv" {
+		return readCSV(file)
 	}
 
+	return readJSON(file)
+}
+
+func readJSON(file *os.File) ([]string, [][]string) {
+	byteValue, e := ioutil.ReadAll(file)
+	if e != nil {
+		log.Fatalf("Invalid JSON file %s, %v", file.Name(), e)
+	}
+
+	var result map[string]reader.Translation
+	json.Unmarshal([]byte(byteValue), &result)
+
+	// collect available languages
+	langs := []string{}
+	for _, chunk := range result {
+		for lang := range chunk {
+			if utils.Contains(langs, lang) {
+				continue
+			}
+			langs = append(langs, lang)
+		}
+	}
+
+	records := [][]string{}
+	for path, chunk := range result {
+		createBase := func() []string {
+			base := []string{
+				"x",  // changed
+				"",   // prevDigest
+				path, // path
+				"",   // key
+			}
+			for range langs {
+				base = append(base, "")
+			}
+			return base
+		}
+
+		memo := map[string][]string{}
+		for lang, translations := range chunk {
+
+			langIdx := 0
+			for i := 0; i < len(langs); i++ {
+				if langs[i] == lang {
+					langIdx = i
+					break
+				}
+			}
+
+			for k, v := range translations {
+				one := []string{}
+				if lastOne, ok := memo[k]; ok {
+					one = lastOne
+				} else {
+					one = createBase()
+				}
+				one[3] = k
+				one[langIdx+4] = v.(string)
+				memo[k] = one
+			}
+		}
+
+		for _, one := range memo {
+			records = append(records, one)
+		}
+	}
+
+	return langs, records
+}
+
+func readCSV(file *os.File) ([]string, [][]string) {
 	r := csv.NewReader(file)
 	rows, err := r.ReadAll()
 
 	if err != nil {
-		log.Fatalf("Please make sure %s is a valid csv file, %v", source, err)
+		log.Fatalf("Please make sure %s is a valid csv file, %v", file.Name(), err)
 	}
 
 	if len(rows) <= 1 {
-		log.Fatalf("%s seems empty", source)
+		log.Fatalf("%s seems empty", file.Name())
 	}
 
 	langs := rows[0][RESERVED:len(rows[0])]
-	records := rows[1:len(rows)]
+	records := rows[1:]
 
 	return langs, records
 }

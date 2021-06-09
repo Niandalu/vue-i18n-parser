@@ -3,7 +3,7 @@ package digest
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	"log"
 	"regexp"
 )

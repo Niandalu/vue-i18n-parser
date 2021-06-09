@@ -16,17 +16,14 @@ export default {
 </script>
 
 <i18n>
-# AUTO GENERATED
-# <d:5X_6HvzgrPq54VLsPP4YFPbp_LA=-->
----
 cn:
   name: 宠物店
   pets:
-    dog: 狗
     cat: 猫
-
+    dog: 狗
 en:
   name: Pet Shop
   pets:
+    cat: cat
     dog: Dog
 </i18n>

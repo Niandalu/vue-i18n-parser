@@ -92,8 +92,27 @@ func prepareApp(projectRoot string) *cli.App {
 			Name:    "feed",
 			Aliases: []string{"f"},
 			Usage:   "Read the translated scripts and write records back to your app",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "patch, p",
+					Usage: "Use patch(incremnetal) mode",
+				},
+				cli.IntFlag{
+					Name:  "indent, i",
+					Value: 2,
+					Usage: "yaml indention",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				feeder.Run(projectRoot, c.Args().First())
+				patchMode := c.Bool("patch")
+				indention := c.Int("indent")
+
+				feeder.Run(projectRoot, c.Args().First(),
+					feeder.Options{
+						PatchMode: patchMode,
+						Indent:    indention,
+					},
+				)
 				return nil
 			},
 		},

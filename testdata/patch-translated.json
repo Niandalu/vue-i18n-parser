@@ -1,0 +1,10 @@
+{
+    "testdata/main.vue": {
+        "cn": {
+            "pets.cat": "猫猫"
+        },
+        "en": {
+            "pets.cat": "catcat"
+        }
+    }
+}

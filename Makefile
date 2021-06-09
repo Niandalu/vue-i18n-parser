@@ -9,5 +9,5 @@ example-feed:
 	go run cmd/vip.go f ./testdata/translated.csv
 
 build:
-	dep ensure
-	GOOS=linux GOARCH=amd64 go build cmd/vip.go
+	GOOS=linux GOARCH=amd64 go build -o vip.linux cmd/vip.go
+	GOOS=darwin GOARCH=amd64 go build -o vip.darwin cmd/vip.go
